@@ -1,0 +1,20 @@
+[
+    {
+        "EnvironmentName": "dev",
+        "SystemName": "bimodelapi",
+        "ParameterName": "ws_resource_group",
+        "ParameterValue": "rg-bi-automl-devqa01"
+    },
+    {
+        "EnvironmentName": "dev",
+        "SystemName": "bimodelapi",
+        "ParameterName": "workspace_name",
+        "ParameterValue": "mlw-bi-automl-devqa01"
+    },
+    {
+        "EnvironmentName": "dev",
+        "SystemName": "bimodelapi",
+        "ParameterName": "workspace_region",
+        "ParameterValue": "westus"
+    }
+]
