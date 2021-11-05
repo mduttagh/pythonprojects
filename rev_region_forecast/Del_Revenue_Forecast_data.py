@@ -45,23 +45,23 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC select distinct 1,  count(forecast_date) from delta_silver_prod_01.s_automl_fact_revenue_forecast
+# MAGIC select distinct 1, count(forecast_date) from delta_silver_prod_01.s_automl_fact_revenue_forecast
 # MAGIC union all 
-# MAGIC select distinct 2,  count(forecast_date)  from delta_gold_prod_01.g_automl_fact_revenue_forecast 
+# MAGIC select distinct 2, count(forecast_date)  from delta_gold_prod_01.g_automl_fact_revenue_forecast 
 # MAGIC union all 
-# MAGIC select distinct 3,  count(forecast_date) from delta_platinum_prod_01.p_automl_fact_revenue_forecast 
+# MAGIC select distinct 3, count(forecast_date) from delta_platinum_prod_01.p_automl_fact_revenue_forecast 
 # MAGIC order by 1,2
 # MAGIC 
-# MAGIC -- select distinct 1,  count(forecast_date) from delta_silver_prod_01.s_automl_fact_revenue_forecast where forecast_date in ('2021-10-14')
+# MAGIC -- select distinct 1,  count(forecast_date) from delta_silver_prod_01.s_automl_fact_revenue_forecast where forecast_date in ('2021-11-01')
 # MAGIC -- union all 
-# MAGIC -- select distinct 2,  count(forecast_date)  from delta_gold_prod_01.g_automl_fact_revenue_forecast where forecast_date in ('2021-10-14')
+# MAGIC -- select distinct 2,  count(forecast_date)  from delta_gold_prod_01.g_automl_fact_revenue_forecast where forecast_date in ('2021-11-01')
 # MAGIC -- union all 
-# MAGIC -- select distinct 3,  count(forecast_date) from delta_platinum_prod_01.p_automl_fact_revenue_forecast where forecast_date in ('2021-10-14')
+# MAGIC -- select distinct 3,  count(forecast_date) from delta_platinum_prod_01.p_automl_fact_revenue_forecast where forecast_date in ('2021-11-01')
 # MAGIC -- order by 1,2
 # MAGIC 
-# MAGIC -- delete from delta_silver_prod_01.s_automl_fact_revenue_forecast where forecast_date  in ('2021-10-14');
-# MAGIC -- delete from delta_gold_prod_01.g_automl_fact_revenue_forecast where forecast_date  in ('2021-10-14');
-# MAGIC -- delete from delta_platinum_prod_01.p_automl_fact_revenue_forecast where forecast_date  in ('2021-10-14');
+# MAGIC -- delete from delta_silver_prod_01.s_automl_fact_revenue_forecast where forecast_date  in ('2021-11-01');
+# MAGIC -- delete from delta_gold_prod_01.g_automl_fact_revenue_forecast where forecast_date  in ('2021-11-01');
+# MAGIC -- delete from delta_platinum_prod_01.p_automl_fact_revenue_forecast where forecast_date  in ('2021-11-01');
 # MAGIC 
 # MAGIC -- select distinct forecast_date from delta_platinum_prod_01.p_automl_fact_revenue_forecast
 # MAGIC -- order by 1 desc  

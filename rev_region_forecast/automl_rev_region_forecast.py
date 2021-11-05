@@ -4,7 +4,7 @@
 
 # COMMAND ----------
 
-#!pip install --upgrade azureml-automl-core sentry_sdk stringcase pandas pandas_datareader yfinance plotly # Story No. 3018 modified Mukesh Dutta 9/3/2021 
+#%pip install --upgrade azureml-automl-core sentry_sdk stringcase pandas pandas_datareader yfinance plotly # Story No. 3018 modified Mukesh Dutta 9/3/2021 
 
 # COMMAND ----------
 
@@ -1117,8 +1117,9 @@ fig.show()
 from azureml.interpret import ExplanationClient
 from azureml.interpret.common.exceptions import ExplanationNotFoundException
 # Get model explanation data
-time.sleep(60) 
-try:    
+if new_training == "True":
+  time.sleep(1200) 
+try:  
     explaination_client = ExplanationClient.from_run(best_run)
     if not explaination_client is None:  # TS : added if condition - 2021-05-17 12:57pm
         client = explaination_client
@@ -1128,6 +1129,12 @@ try:
             "You can visualize the engineered explanations under the 'Explanations (preview)' tab in the AutoML run at:-\n"
             + best_run.get_portal_url()
         )
+        
+        feature_imp_dict_eng = pd.DataFrame(
+           engineered_explanations.get_feature_importance_dict().items()
+        )
+        feature_imp_dict_eng.columns = ["Feature", "Importance"]
+        
         raw_explanations = client.download_model_explanation(raw=True)
         # print(raw_explanations.get_feature_importance_dict())
         print(
@@ -1135,10 +1142,10 @@ try:
             + best_run.get_portal_url()
         )
 
-        feature_imp_dict = pd.DataFrame(
+        feature_imp_dict_raw = pd.DataFrame(
             raw_explanations.get_feature_importance_dict().items()
         )
-        feature_imp_dict.columns = ["Feature", "Importance"]
+        feature_imp_dict_raw.columns = ["Feature", "Importance"]
         # feature_imp_dict.plot() # Story No. 3404 
     else:
         print("Explaination_client not found")
@@ -1153,51 +1160,7 @@ except Exception as error:
 
 # COMMAND ----------
 
-# DBTITLE 1,Engineered Feature Importance
-# engineered feature importances from the best run
-# Start Story No. 3018 modified Mukesh Dutta 9/3/2021 
-from azureml.interpret import ExplanationClient
-from azureml.interpret.common.exceptions import ExplanationNotFoundException
-# Get model explanation data
-time.sleep(60) 
-try:    
-    explaination_client = ExplanationClient.from_run(best_run)
-    if not explaination_client is None:  # TS : added if condition - 2021-05-17 12:57pm
-        client = explaination_client
-        engineered_explanations = client.download_model_explanation(raw=False)
-        #print(engineered_explanations.get_feature_importance_dict())
-        print(
-            "You can visualize the engineered explanations under the 'Explanations (preview)' tab in the AutoML run at:-\n"
-            + best_run.get_portal_url()
-        )
-        # raw_explanations = client.download_model_explanation(raw=True)
-        # print(raw_explanations.get_feature_importance_dict())
-        #print(
-        #    "You can visualize the raw explanations under the 'Explanations (preview)' tab in the AutoML run at:-\n"
-        #    + best_run.get_portal_url()
-        #)
-
-        feature_imp_dict = pd.DataFrame(
-            engineered_explanations.get_feature_importance_dict().items()
-        )
-        feature_imp_dict.columns = ["Feature", "Importance"]
-        # feature_imp_dict.plot() # Story No. 3404 
-    else:
-        print("Explaination_client not found")
-        
-except ExplanationNotFoundException:
-    print("Explaination_client not found  {}".format(ExplanationNotFoundException))  # TS : added if condition - 2021-05-17 12:57pm
-except Exception as error:
-    print(error)
-    log_error("{} {}".format(notebook, error)) #log error in sentry
-    #raise dbutils.notebook.exit(error) #raise the exception
-    raise error #raise the exception
-# End Story No. 3018 modified Mukesh Dutta 9/3/2021     
-
-# COMMAND ----------
-
-# DBTITLE 1,Print feature importance
-# Print feature importance
+# Print feature importance - Raw
 # Start - Story No. 3018 modified Mukesh Dutta 9/3/2021 
 import plotly.express as px
 
@@ -1207,7 +1170,48 @@ import plotly.express as px
 #         'ygridoff', 'gridon', 'none']
 
 template = 'seaborn'
-source = feature_imp_dict.query('Feature != "Headcount_Billable"')
+source = feature_imp_dict_raw.query('Feature != "Headcount_Billable"')
+x = 'Importance'  # df['Importance'].astype(str)
+y = 'Feature'  # df['Feature'].astype(str)
+y1 = 'Revenue'
+fig_width = 1200
+fig_height = 2400
+
+# Use textposition='auto' for direct text
+fig = px.bar(source,
+             x=x,
+             y=y,
+             text=x,
+             height=fig_height,
+             width =fig_width,
+             template=template,
+             title='Forecast Model Drivers Importance (excluding "Headcount_Billable")',
+            )
+fig.update_traces(texttemplate='%{text:.2s}', textposition='auto')
+fig.update_layout(
+    uniformtext_minsize=8, 
+    uniformtext_mode='hide',
+    title_font_size=24,
+    xaxis = dict(title_font_size = 16),
+    yaxis = dict(title_font_size = 16, autorange="reversed")
+) 
+fig.show()
+# End - Story No. 3018 modified Mukesh Dutta 9/3/2021 
+
+# COMMAND ----------
+
+# DBTITLE 1,Print feature importance
+# Print feature importance - Engineered
+# Start - Story No. 3018 modified Mukesh Dutta 9/3/2021 
+import plotly.express as px
+
+#Available templates:
+#        ['ggplot2', 'seaborn', 'simple_white', 'plotly',
+#         'plotly_white', 'plotly_dark', 'presentation', 'xgridoff',
+#         'ygridoff', 'gridon', 'none']
+
+template = 'seaborn'
+source = feature_imp_dict_eng.query('Feature != "Headcount_Billable"')
 x = 'Importance'  # df['Importance'].astype(str)
 y = 'Feature'  # df['Feature'].astype(str)
 y1 = 'Revenue'
@@ -1381,12 +1385,12 @@ from azureml.core.model import Model
 inference_config = InferenceConfig(environment = best_run.get_environment(), 
                                    entry_script = script_file_name)
 
-aciconfig = AciWebservice.deploy_configuration(cpu_cores = 1, 
-                                               memory_gb = 2, 
+aciconfig = AciWebservice.deploy_configuration(cpu_cores = 2, 
+                                               memory_gb = 4, 
                                                tags = {'type': 'automl-forecasting'},
-                                               description = 'Automl forecasting revenue service')
+                                               description = 'Automl revenue forecasting service')
 
-aci_service_name = 'automl-revenue-forecast-01'
+aci_service_name = 'automl-revenue-region-forecast'
 print(aci_service_name)
 aci_service = Model.deploy(ws, aci_service_name, [model], inference_config, aciconfig)
 aci_service.wait_for_deployment(True)
@@ -1396,7 +1400,7 @@ aci_service.get_logs()
 
 #Call the service
 import json
-X_query = X_test.copy()
+X_query = test.copy()
 # We have to convert datetime to string, because Timestamps cannot be serialized to JSON.
 X_query[time_column_name] = X_query[time_column_name].astype(str)
 # The Service object accept the complex dictionary, which is internally converted to JSON string.
