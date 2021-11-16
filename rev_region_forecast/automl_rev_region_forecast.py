@@ -381,7 +381,7 @@ automl_config = AutoMLConfig(  # featurization_config,
     featurization="auto",
     n_cross_validations=5,
     verbosity=logging.INFO,
-    max_concurrent_iterations=20,
+    max_concurrent_iterations=9,
     max_cores_per_iteration=-1,
     forecasting_parameters=forecasting_parameters,
 )
@@ -501,7 +501,7 @@ y_test = X_test.pop(target_column_name).values
 # The featurized data, aligned to y, will also be returned.
 # and helps align the forecast to the original data
 try:
-    y_predictions, X_trans = fitted_model.forecast(X_test)
+    y_predictions, X_trans = fitted_model.forecast(X_test,ignore_data_errors=True)
 
     # from forecasting_helper import align_outputs
 
@@ -634,11 +634,6 @@ final_merge_df["Relative_Month_Offset"] = round(
     (final_merge_df["End_of_Month"] - current_eom) / np.timedelta64(1, "M"), 0
 ).astype(int)
 
-if "origin" in final_merge_df.columns:
-    final_merge_df["origin"] = pd.to_datetime(final_merge_df["origin"])
-
-    # .dt.date
-
 # sort using original cols_sort_list
 
 final_merge_df = final_merge_df.sort_values(by=final_sort_order, ascending=final_sort_order_ascending).reset_index(drop=True)
@@ -684,11 +679,22 @@ metrics_df.columns = new_header
 metrics_df.columns = metrics_df.columns.str.title()
 final_merge_df = df_crossjoin(final_merge_df, metrics_df)
 
+
+if "origin" in final_merge_df.columns:
+    final_merge_df["origin"] = pd.to_datetime(final_merge_df["origin"])
+else:
+    final_merge_df["origin"] = final_merge_df["End_of_Month"]
+    
+if "horizon_origin" in final_merge_df.columns:
+    print("Origins exists")
+else:
+    final_merge_df["horizon_origin"] = final_merge_df["Relative_Month_Offset"] + 1
+    # .dt.date
+
 final_merge_df = movecol(final_merge_df, 
              cols_to_move=['origin','horizon_origin','Current_Opp_Period_Count','Opportunity_Period_Value'], 
              ref_col='Spearman_Correlation',
              place='After')
-
 '''
 final_merge_df["Predicted_Revenue_Variance"] = np.where(
     final_merge_df["Relative_Month_Offset"] < 0,
@@ -733,7 +739,6 @@ print(" final_merge_df: ")
 # display(final_merge_df.tail()) # Story No. 3404
 final_merge_df.to_csv(output_data_path + "final_merge_df.csv", index=False)
 final_merge_df.to_parquet(output_data_path + "final_merge_df.parquet", index=None)
-
 
 # COMMAND ----------
 
@@ -1425,4 +1430,5 @@ y_fcst_all.head()
 print("Done")
 
 # COMMAND ----------
+
 
