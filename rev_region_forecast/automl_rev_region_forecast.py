@@ -185,27 +185,23 @@ except Exception as error:
 # Data Split
 # split the data into a training and a testing set for later forecast evaluation. The test set will contain the final test_size months of observed sales for each time-series.
 # The splits should be stratified by series, so we use a group-by statement on the time series identifier columns.
-# test_size = .11 #in percentage
-# n_test_periods =  int(tseries * test_size)
-# n_test_periods = Relative_EOM_Snp_Month_Offset_future_period
-
 df = merge_final.copy()
+nseries = df.groupby(time_series_id_column_names).ngroups # MD Change 11/17/2021
+print("Data contains {0} individual time-series.".format(nseries)) # MD Change 11/17/2021
     
-'''
-tseries = df.groupby(time_column_name).ngroups
-print("Data contains {0} individual time_column_name.".format(tseries))
-test_size = round(n_test_periods / tseries, 2)
-print("Time Column Name:", time_column_name)
-print("Test Size: ", test_size, "Test Periods: ", n_test_periods)
-print(df[time_column_name].unique())
+def split_last_n_by_series_id1(df, n):
+    """Group df by series identifiers and split on last n rows for each group."""
+    df_grouped = df.sort_values(by=final_sort_order,ascending=final_sort_order_ascending).groupby(  # Sort by ascending time
+        time_series_id_column_names, group_keys=False
+    )
+    df_head = df_grouped.apply(lambda dfg: dfg.iloc[:-n])
+    df_tail = df_grouped.apply(lambda dfg: dfg.iloc[-n:])
+    return df_head, df_tail
 
-#print("n_test_periods: ", n_test_periods)
-'''
+#train = df.query("Relative_Month_Offset < 0") # MD Change 11/17/2021
+#test = df.drop(train.index) # MD Change 11/17/2021
 
-train = df.query("Relative_Month_Offset < 0")
-test = df.drop(train.index)
-
-#(train, test) = split_last_n_by_series_id(df, n_test_periods)
+(train, test) = split_last_n_by_series_id1(df, n_test_periods) # MD Change 11/17/2021
 
 print("df: ", df.shape) 
 print("train: ", train.shape)
@@ -337,11 +333,11 @@ train_dataset = Dataset.Tabular.from_delimited_files(
 
 from azureml.automl.core.forecasting_parameters import ForecastingParameters
 
-target_lag = [x for x in range(1,7)] # "auto" # Story No. 3018 modified Mukesh Dutta 9/3/2021 
-window_size = "auto" # Story No. 3018 modified Mukesh Dutta 9/3/2021 
+target_lag = [x for x in range(1,7)] # MD Change 11/17/2021  "auto" # 
+window_size = "auto" 
 feature_lag = "auto"
-forecast_horizon = n_test_periods
-seasonality = "auto" # Story No. 3404 modified Mukesh Dutta 9/21/2021
+forecast_horizon = n_test_periods # MD Change 11/17/2021
+seasonality = "auto" 
 
 print("past_period", past_period)
 print("n_test_periods", n_test_periods)
@@ -349,7 +345,7 @@ print("target_lags:", target_lag)
 print("target_rolling_window_size:", window_size)
 print("forecast_horizon:", forecast_horizon)
 print("feature_lags:", feature_lag)
-print("seasonality:", seasonality) # Story No. 3404 modified Mukesh Dutta 9/21/2021
+print("seasonality:", seasonality) 
 
 forecasting_parameters = ForecastingParameters(
     time_column_name=time_column_name,
@@ -357,15 +353,9 @@ forecasting_parameters = ForecastingParameters(
     time_series_id_column_names=time_series_id_column_names,
     target_lags=target_lag,
     feature_lags=feature_lag,
-    target_rolling_window_size=window_size, # Story No. 3404 modified Mukesh Dutta 9/21/2021
-    seasonality=seasonality#, # Story No. 3404 modified Mukesh Dutta 9/21/2021
-    # drop_column_names = ['Pipeline_Trend','Project_Price','Opportunity_Value'] # Story No. 3404 modified Mukesh Dutta 9/21/2021
-    # ,'Project_Period_Price','Opportunity_Period_Count','Current_Opp_Period_Value', # Story No. 3404 modified Mukesh Dutta 9/21/2021
-    #                     'Current_Opp_Period_Count','Opportunity_Period_Value','Utilization_Billable','Yield_Recognized', # Story No. 3018 modified Mukesh Dutta 9/3/2021 
-    #                     'Conversions'] # Story No. 3018 modified Mukesh Dutta 9/3/2021 
+    target_rolling_window_size=window_size, 
+    seasonality=seasonality#, 
 )
-
-# drop_column_names = ['-1M Pipeline']
 
 automl_config = AutoMLConfig(  # featurization_config,
     task="forecasting",
@@ -492,7 +482,6 @@ rundata
 
 # DBTITLE 1,Forecasting
 # FORECASTING
-
 X_test = test.copy()
 y_test = X_test.pop(target_column_name).values
 
@@ -500,23 +489,22 @@ y_test = X_test.pop(target_column_name).values
 # This contains the assumptions that were made in the forecast
 # The featurized data, aligned to y, will also be returned.
 # and helps align the forecast to the original data
+
 try:
-    y_predictions, X_trans = fitted_model.forecast(X_test,ignore_data_errors=True)
+    y_predictions, X_trans = fitted_model.forecast(X_test) # MD Change 11/17/2021
 
     # from forecasting_helper import align_outputs
 
     df_all = align_outputs(y_predictions, X_trans, X_test, y_test, target_column_name)
     df_all.rename(columns={"predicted": "Predicted_Revenue"}, inplace=True)
     df_all["Predicted_Revenue"] = np.round(df_all["Predicted_Revenue"],2)
-    # df_all.info() # Story No. 3196 modified Mukesh Dutta 7/13/2021
-    df_all.tail() # Story No. 3196 modified Mukesh Dutta 7/13/2021
+    # df_all.info() 
+    df_all.tail() 
 except Exception as error:
     print(error)
     log_error("{} {}".format(notebook, error)) #log error in sentry
     #raise dbutils.notebook.exit(error) #raise the exception
     raise error #raise the exception
-
-
 
 # COMMAND ----------
 
@@ -679,8 +667,8 @@ metrics_df.columns = new_header
 metrics_df.columns = metrics_df.columns.str.title()
 final_merge_df = df_crossjoin(final_merge_df, metrics_df)
 
-
-if "origin" in final_merge_df.columns:
+# MD Change 11/17/2021
+if "origin" in final_merge_df.columns: 
     final_merge_df["origin"] = pd.to_datetime(final_merge_df["origin"])
 else:
     final_merge_df["origin"] = final_merge_df["End_of_Month"]
@@ -690,6 +678,7 @@ if "horizon_origin" in final_merge_df.columns:
 else:
     final_merge_df["horizon_origin"] = final_merge_df["Relative_Month_Offset"] + 1
     # .dt.date
+# MD Change 11/17/2021
 
 final_merge_df = movecol(final_merge_df, 
              cols_to_move=['origin','horizon_origin','Current_Opp_Period_Count','Opportunity_Period_Value'], 
@@ -848,7 +837,7 @@ batch_id = df_job_info.agg({"batch_id" : "max"}).collect()[0][0]
 batch_start_datetime = df_job_info.agg({"batch_start_datetime" : "max"}).collect()[0][0]
 
 # Create new forecasting file with new forecast date
-revenue_predict_new = final_merge_df1.query('Predicted_Revenue != 0')
+revenue_predict_new = final_merge_df1.query('Predicted_Revenue != 0 and Relative_Month_Offset >= 0 and Relative_Month_Offset <= @n_test_periods') # MD Change 11/17/2021
 revenue_predict_new = convert_date_cols(revenue_predict_new)
 revenue_predict_new = revenue_predict_new.sort_values(by=final_sort_order, ascending=final_sort_order_ascending).reset_index(
     drop=True
